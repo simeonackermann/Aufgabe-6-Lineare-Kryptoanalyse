@@ -6,7 +6,7 @@ import java.util.Random;
 public class crypt {
 	
 	// substitution
-	int[] sBox = {9, 11, 12, 4, 10, 1, 2, 6, 13, 7, 3, 8, 15, 14, 0, 5};
+	int[] sBox = {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
 	// reverse substitution für entschlüsselung
 	int[] revSbox = {14, 5, 6, 10, 3, 15, 7, 9, 11, 0, 4, 1, 2, 8, 13, 12};
 	// 
