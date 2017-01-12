@@ -16,7 +16,7 @@ public class crypt {
 	// approximationstabelle
 	int[][] approxTable = new int[16][16];
 	// anzahl der known pairs
-	int numKnown = 65536; // = 2^16
+	int numKnown = 65536;
 	// known plaintexts
 	int[] knownP = new int[numKnown];
 	// known ciphertext
@@ -102,6 +102,9 @@ public class crypt {
 	    */
 	}
 	
+	/*
+	 * Maske (input/output) anwenden
+	 */
 	int applyMask(int value, int mask)
 	{
 	    int interValue = value & mask; //Ersatz für Multiplikation a*X bzw. b*Y
@@ -119,6 +122,9 @@ public class crypt {
 	    return total;   
 	}
 	
+	/*
+	 * Approximationstabelle erstellen
+	 */
 	void findApprox() {
 		// output mask b, spalten durchlaufen
 		for(int b = 1; b < 16; b++) {
@@ -135,14 +141,11 @@ public class crypt {
 	            approxTable[a][b] -= 8;
 	        }
 		}
-		// jeden eintrag minus 8 für normalisierung
-		for(int b = 1; b < 16; b++) {
-			for(int a = 1; a < 16; a++) {
-				//approxTable[a][b] -= 8;
-			}
-		}
 	}
 	
+	/*
+	 * Approximationstabelle ausgeben
+	 */
 	void showApprox() {
 	    //System.out.println("Gute Lineare Approximationen:");
 		System.out.println("Approximationstabelle: (input mask \\ output mask)");
@@ -159,6 +162,11 @@ public class crypt {
 	    }
 	}
 	
+	/*
+	 * Known Pairs erstellen
+	 * Test: 17978 = 24754 bei Schlüssel = 350 nach einer Runde
+     * Test: 17978 = 10418 bei Schlüssel = 350 bei letzter runde (ohne transposition)
+	 */
 	void fillKnowns() {
 		Random rand = new Random(); 
 	    int[] roundKeys = new int[numRounds];
@@ -170,61 +178,100 @@ public class crypt {
 	    for(int i = 0; i < numKnown; i++) {
 	    	// known plaintext erstellen, mit 2^16 mögl. werten
 	        knownP[i] = Math.abs(rand.nextInt()) % numKnown;
-	    
+	        
 	        // known ciphertext erstellen, dafür x runden durchlaufen
 	        knownC[i] = knownP[i];
 	        for (int j = 1; j <= numRounds; j++) {
-	        	knownC[i] = roundFunc(knownC[i], roundKeys[j-1]);
+	        	if (j == numRounds) {
+	        		knownC[i] = lastRoundFunc(knownC[i], roundKeys[j-1]);
+	        	} else {
+	        		knownC[i] = roundFunc(knownC[i], roundKeys[j-1]);
+	        	}
 			}
 	    }
 	}
 	
-	// input = known plaintext, subkey = rundenschlüssel
-	int roundFunc(int input, int subkey)
-	{
-		//System.out.println("input ^ subkey]: " + (input ^ subkey));
-	    //return sBox[input ^ subkey];
-		String bin = toBinary(input, 16);
-		String bin1 = bin.substring(0, 3);
-		Integer bin1Int = sBox[toInteger(bin1)];
-		
-		String bin2 = bin.substring(4, 7);
-		Integer bin2Int = sBox[toInteger(bin2)];
-		
-		String bin3 = bin.substring(8, 11);
-		Integer bin3Int = sBox[toInteger(bin3)];
-		
-		String bin4 = bin.substring(12, 15);
-		Integer bin4Int = sBox[toInteger(bin4)];
-		
-		String bin1234 = toBinary(bin1Int, 4) + toBinary(bin2Int, 4) + toBinary(bin3Int, 4) + toBinary(bin4Int, 4);
-		//String result = bin1234.substring(0, 0) + bin1234.substring(4, 4);
-		String result = "";
-		//bin1234.charAt(index)
-		for (int i = 1; i <= transTable.length; i++) {
-			result += bin1234.charAt(transTable[i - 1] - 1);
-		}
-		
-		return toInteger(result);
+	/*
+	 * Rundenfunktion für DES
+	 * @input Plaintext
+	 * @subkey Rundenschlüssel
+	 */
+	int roundFunc(int input, int subkey) {
+		input = input ^ subkey;
+		return transposition(substitution(input));
 	}
 	
+	/*
+	 * Letzte Runde für DES (ohne transposition
+	 * @input Plaintext
+	 * @subkey Rundenschlüssel
+	 */
+	int lastRoundFunc(int input, int subkey) {
+		input = input ^ subkey;
+		return substitution(input);
+	}
+	
+	/*
+	 * Substitution mit S-Box für  DES
+	 * @input Plaintext
+	 * @subkey Rundenschlüssel
+	 */
+	int substitution(int input) {
+		String bin = toBinary(input, 16);
+		String bin1 = bin.substring(0, 4);
+		Integer bin1Int = sBox[toDecimal(bin1)];
+		
+		String bin2 = bin.substring(4, 8);
+		Integer bin2Int = sBox[toDecimal(bin2)];
+		
+		String bin3 = bin.substring(8, 12);
+		Integer bin3Int = sBox[toDecimal(bin3)];
+		
+		String bin4 = bin.substring(12, 16);
+		Integer bin4Int = sBox[toDecimal(bin4)];
+		
+		String result = toBinary(bin1Int, 4) + toBinary(bin2Int, 4) + toBinary(bin3Int, 4) + toBinary(bin4Int, 4);
+		return toDecimal(result);
+	}
+	
+	/*
+	 * Transposition mit Transpositionstabelle für DES
+	 * @input Eingabezahl
+	 */
+	int transposition(int input) {
+		String inputStr = toBinary(input, 16);
+		String result = "";
+		for (int i = 1; i <= transTable.length; i++) {
+			result += inputStr.charAt(transTable[i - 1] - 1);
+		}		
+		return toDecimal(result);
+	}
+	
+	/*
+	 * Dualzahl fester länge aus Dezimalzahl erstellen
+	 * @input Dezimalzahl
+	 * @length Länge
+	 */
 	String toBinary(int input, int length) {
-		//return Integer.toBinaryString(0x10000 | input).substring(1);
 		String binarized = Integer.toBinaryString(input);
 		int len = binarized.length();
-		//String sixteenZeroes = "00000000000000000";
 		String zeros = "";
 		for (int i = 1; i <= length; i++) {
 			zeros += "0";
 		}
-		if (len < length)
+		if (len < length) {
 		  binarized = zeros.substring(0, length-len).concat(binarized);
-		else
+		} else {
 		  binarized = binarized.substring(len - length);
+		}
 		return binarized;
 	}
 	
-	Integer toInteger(String input) {
+	/*
+	 * Dezimalzahl (Integer) aus String erzeugen
+	 * @input Eingabe-String
+	 */
+	Integer toDecimal(String input) {
 		return Integer.parseInt(input, 2);
 	}
 	
