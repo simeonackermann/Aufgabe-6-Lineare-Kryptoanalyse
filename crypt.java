@@ -9,14 +9,13 @@ public class crypt {
 	int[] sBox = {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
 	// reverse substitution für entschlüsselung
 	int[] revSbox = {14, 5, 6, 10, 3, 15, 7, 9, 11, 0, 4, 1, 2, 8, 13, 12};
-	// Y belegungen für anwendung der maske auf approximationstabelle
-	int[] yValues = {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
 	// transpositions tabelle der DES verschlüsselung
 	int[] transTable = {1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16};
 	// approximationstabelle
 	int[][] approxTable = new int[16][16];
 	// anzahl der known pairs
-	int numKnown = 65536;
+	//int numKnown = 65536;
+	int numKnown = 1;
 	// known plaintexts
 	int[] knownP = new int[numKnown];
 	// known ciphertext
@@ -27,15 +26,12 @@ public class crypt {
 	void main(String[] args) {
 		System.out.println("Known Plaintext Paare erstellen...");
 	    fillKnowns();
+	    System.out.printf("  Klartext (erste 16): %s ...\n", Arrays.toString(Arrays.copyOfRange(knownP, 0, 16)));
+	    System.out.printf("  Ciphertext (erste 16): %s ...\n", Arrays.toString(Arrays.copyOfRange(knownC, 0, 16)));
 	    System.out.printf("Insgesamt %d Known Pairs erstellt.\n", knownP.length);
-	    System.out.printf("Klartext (erste 16): %s ...\n", Arrays.toString(Arrays.copyOfRange(knownP, 0, 16)));
-	    System.out.printf("Ciphertext (erste 16): %s ...\n\n", Arrays.toString(Arrays.copyOfRange(knownC, 0, 16)));
 	    
-	    System.out.println("Approximationstabelle erstellen...");
-	    // approximationstabelle berechnen
+	    System.out.println("\nApproximationstabelle erstellen...");
 	 	findApprox();
-	 	//System.out.println("Approximationstabelle" + Arrays.deepToString(approxTable));
-	 	// approximationstabelle anzeigen
 	 	showApprox();
 		
 	    /*
@@ -103,23 +99,22 @@ public class crypt {
 	}
 	
 	/*
-	 * Maske (input/output) anwenden
+	 * Maske auf input anwenden (a1 * Y1 ^ a2 * Y2)
 	 */
-	int applyMask(int value, int mask)
-	{
-	    int interValue = value & mask; //Ersatz für Multiplikation a*X bzw. b*Y
-	    int total = 0;
-	    
-	    while(interValue > 0)
-	    {
-	        int temp = interValue % 2;    
-	        interValue /= 2;
-	        
-	        if (temp == 1) {
-	            total = total ^ 1;
-	        }
-	    } 
-	    return total;   
+	int applyMask(int input, int mask) {
+		String inputBin = toBinary(input, 4);
+		Integer in1 = toDecimal(inputBin.substring(0, 1));
+		Integer in2 = toDecimal(inputBin.substring(1, 2));
+		Integer in3 = toDecimal(inputBin.substring(2, 3));
+		Integer in4 = toDecimal(inputBin.substring(3, 4));
+		
+		String maskBin = toBinary(mask, 4);
+		Integer m1 = toDecimal(maskBin.substring(0, 1));
+		Integer m2 = toDecimal(maskBin.substring(1, 2));
+		Integer m3 = toDecimal(maskBin.substring(2, 3));
+		Integer m4 = toDecimal(maskBin.substring(3, 4));
+		
+		return in1 * m1 ^ in2 * m2 ^ in3 * m3 ^ in4 * m4 ;
 	}
 	
 	/*
@@ -133,9 +128,9 @@ public class crypt {
 	        	// input, jede zelle für 16 fälle testen 
 	            for(int e = 0; e < 16; e++) {
 	            	// wenn a & X == b & Y approx tabelle inkrementieren
-	            	if (applyMask(e, a) == applyMask(yValues[e], b)) {
+	            	if (applyMask(e, a) == applyMask(sBox[e], b)) {
 	                    approxTable[a][b]++;
-	                }
+	                }	            	
 	            }
 	            // jeden eintrag minus 8 für normalisierung
 	            approxTable[a][b] -= 8;
