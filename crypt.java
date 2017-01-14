@@ -38,15 +38,15 @@ public class crypt {
 		
 	    System.out.println("\nTeilschlüssel finden...");
 	    findPartKeys();
+	    System.out.println("Index und Werte:");
 	    showPartTable();
-	    int indexHighestValue = getIndexOfHighestValue();
-	    
-	    int key2 = indexHighestValue % 16;
+	    int indexHighestValue = getIndexOfHighestValue();	   
 	    int key1 = Math.floorDiv(indexHighestValue, 16) % 16;
+	    int key2 = indexHighestValue % 16;
 	    
-	    System.out.println("Index des höchsten Wertes: " + indexHighestValue);
-	    System.out.println("Teilschlüssel [5-8]: " + key1);
-	    System.out.println("Teilschlüssel [13-16]: " + key2);
+	    System.out.println("\nIndex des höchsten Wertes: " + indexHighestValue);
+	    System.out.println("Teilschlüssel [5-8]:\t" + key1);
+	    System.out.println("Teilschlüssel [13-16]:\t " + key2);
 	}
 	
 	int getIndexOfHighestValue() {
@@ -62,8 +62,8 @@ public class crypt {
 	}
 	
 	void showPartTable() {
-		for (int i = 0; i < subkeyBias.length; i++) {
-			System.out.printf("%d\t%f\n", i, subkeyBias[i]);
+		for (int i = 0; i < subkeyBias.length / 4; i++) {
+			System.out.printf("%d\t%f\t %d\t%f\t %d\t%f\t %d\t%f\n", i, subkeyBias[i], i+64, subkeyBias[i+64], i+128, subkeyBias[i+128], i+192, subkeyBias[i+192]);
 		}
 	}
 	
@@ -98,8 +98,7 @@ public class crypt {
 						subkeyBias[(i*16) + j]++;
 					}
 				}				
-				subkeyBias[(i*16) + j] = Math.abs(subkeyBias[(i*16) + j] - numKnown/2) / numKnown; 
-				
+				subkeyBias[(i*16) + j] = Math.abs(subkeyBias[(i*16) + j] - numKnown/2) / numKnown;
 			}
 		}
 		System.out.printf("\n");
@@ -168,7 +167,7 @@ public class crypt {
 	    int[] roundKeys = new int[numRounds+1];
 	    for (int j = 0; j <= numRounds; j++) {
 	    	roundKeys[j] = Math.abs(rand.nextInt()) % numKnown;
-        	System.out.printf("  Rundenschlüssel S %d: %s\n", j+1, roundKeys[j]);
+        	System.out.printf("  Rundenschlüssel %d: %s (%s)\n", j+1, roundKeys[j], toBinary(roundKeys[j], 16));
 	    }
 	    
 	    for(int i = 0; i < numKnown; i++) {
