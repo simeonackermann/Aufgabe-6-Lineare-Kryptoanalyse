@@ -5,24 +5,23 @@ import java.util.Random;
 
 public class crypt {
 	
-	// S-Box substitution
+	// S-Box Substitution
 	int[] sBox = {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
-	// reverse substitution für entschlüsselung
+	// Inverse Substitution für Entschlüsselung
 	int[] revSbox = {14, 3, 4, 8, 1, 12, 10, 15, 7, 13, 9, 6, 11, 2, 0, 5};
-	// transpositions tabelle der DES verschlüsselung
+	// Transpositions Tabelle der DES Verschlüsselung
 	int[] transTable = {1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16};
-	// approximationstabelle
+	// Approximationstabelle
 	int[][] approxTable = new int[16][16];
-	// anzahl der known pairs
+	// Anzahl der known pairs
 	int numKnown = 65536;
-	//int numKnown = 1;
 	// known plaintexts
 	int[] knownP = new int[numKnown];
 	// known ciphertext
 	int[] knownC = new int[numKnown];
-	// anzahl der runden zur verschlüsselung
+	// Anzahl der Runden zur Verschlüsselung
 	int numRounds = 4;
-	// ergebnisse der häufigkeit der teilschlüssel
+	// Ergebnisse der Häufigkeit der Teilschlüssel
 	double[] subkeyBias = new double[16*16];
 	
 	void main(String[] args) {
@@ -40,7 +39,10 @@ public class crypt {
 	    findPartKeys();
 	    System.out.println("Index und Werte:");
 	    showPartTable();
-	    int indexHighestValue = getIndexOfHighestValue();	   
+	    
+	    //Schlüsselbits der letzten Runde - Aus Array den Eintrag auslesen mit höchster Abweichung von 1/2
+	    int indexHighestValue = getIndexOfHighestValue();	
+	    //Eintrag in Hexadezimalzahl wandeln
 	    int key1 = Math.floorDiv(indexHighestValue, 16) % 16;
 	    int key2 = indexHighestValue % 16;
 	    
@@ -49,6 +51,7 @@ public class crypt {
 	    System.out.println("Teilschlüssel [13-16]:\t " + key2);
 	}
 	
+	//Schlüsselbits der letzten Runde auslesen
 	int getIndexOfHighestValue() {
 		double max = -1;
 		int index = 0;
@@ -61,13 +64,16 @@ public class crypt {
 		return index;
 	}
 	
+	//Ausgabe der Tabelle zum Matsui Algorithmus
 	void showPartTable() {
 		for (int i = 0; i < subkeyBias.length / 4; i++) {
 			System.out.printf("%d\t%f\t %d\t%f\t %d\t%f\t %d\t%f\n", i, subkeyBias[i], i+64, subkeyBias[i+64], i+128, subkeyBias[i+128], i+192, subkeyBias[i+192]);
 		}
 	}
 	
+	//Lineare Gleichung nach Matsui aufstellen und Treffer in subkeyBias zählen
 	void findPartKeys() {
+		//Zwei Schleifen bis 16 für alle möglichen Schlüsselbits K5,5 ... K5,8 ; K5,13 ... K5,16
 		for (int i = 0; i < 16; i++) {
 			System.out.printf(" %d...", i);
 			for (int j = 0; j < 16; j++) {				
@@ -78,15 +84,19 @@ public class crypt {
 					String c1 = ciphert.substring(4, 8);
 					String c2 = ciphert.substring(12, 16);
 					
+					//XOR mit Rundenschlüssel 5
 					int v1 = i ^ toDecimal(c1);
 					int v2 = j ^ toDecimal(c2);
 					
+					//Invers Lookup der Sbox 4,2 bzw. 4,4
 					int u1 = revSbox[v1];
 					String u1Str = toBinary(u1, 4);
 					
 					int u2 = revSbox[v2];
 					String u2Str = toBinary(u2, 4);					  
 					
+					//Gleichung siehe Heys S. 15
+					//U4,6 xor U4,8 xor U4,14 xor U4,16 xor P5 xor P7 xor P8 = 0 
 					if ((	toDecimal(u1Str.substring(1, 2)) ^ 
 							toDecimal(u1Str.substring(3, 4)) ^ 
 							toDecimal(u2Str.substring(1, 2)) ^ 
@@ -98,6 +108,7 @@ public class crypt {
 						subkeyBias[(i*16) + j]++;
 					}
 				}				
+				//Prozentuale Abweichung von 1/2
 				subkeyBias[(i*16) + j] = Math.abs(subkeyBias[(i*16) + j] - numKnown/2) / numKnown;
 			}
 		}
@@ -105,7 +116,7 @@ public class crypt {
 	}
 	
 	/*
-	 * Maske auf input anwenden (a1 * Y1 ^ a2 * Y2)
+	 * Maske auf input anwenden (a1 * Y1 ^ a2 * Y2) siehe Heys S.11
 	 */
 	int applyMask(int input, int mask) {
 		String inputBin = toBinary(input, 4);
@@ -127,18 +138,18 @@ public class crypt {
 	 * Approximationstabelle erstellen
 	 */
 	void findApprox() {
-		// output mask b, spalten durchlaufen
+		// output mask b, Spalten durchlaufen
 		for(int b = 1; b < 16; b++) {
-			// input mask a, zeilen durchlaufen
+			// input mask a, Zeilen durchlaufen
 	        for(int a = 1; a < 16; a++) {
-	        	// input, jede zelle für 16 fälle testen 
+	        	// input, jede Zelle für 16 Fälle testen 
 	            for(int e = 0; e < 16; e++) {
-	            	// wenn a & X == b & Y approx tabelle inkrementieren
+	            	// Wenn a & X == b & Y approxTable inkrementieren
 	            	if (applyMask(e, a) == applyMask(sBox[e], b)) {
 	                    approxTable[a][b]++;
 	                }	            	
 	            }
-	            // jeden eintrag minus 8 für normalisierung
+	            // Jeden Eintrag minus 8 für Normalisierung
 	            approxTable[a][b] -= 8;
 	        }
 		}
@@ -171,7 +182,7 @@ public class crypt {
 	    }
 	    
 	    for(int i = 0; i < numKnown; i++) {
-	    	// known plaintext erstellen, mit 2^16 mögl. werten
+	    	// known plaintext erstellen, mit 2^16 mögl. Werten
 	        knownP[i] = Math.abs(rand.nextInt()) % numKnown;
 	        
 	        // known ciphertext erstellen, dafür x runden durchlaufen
@@ -197,7 +208,7 @@ public class crypt {
 	}
 	
 	/*
-	 * Letzte Runde für DES (ohne transposition
+	 * Letzte Runde für DES (ohne Transposition)
 	 * @input Plaintext
 	 * @subkey Rundenschlüssel
 	 */
@@ -245,7 +256,7 @@ public class crypt {
 	}
 	
 	/*
-	 * Dualzahl fester länge aus Dezimalzahl erstellen
+	 * Dualzahl fester Länge aus Dezimalzahl erstellen
 	 * @input Dezimalzahl
 	 * @length Länge
 	 */
