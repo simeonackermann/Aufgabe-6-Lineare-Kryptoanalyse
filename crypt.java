@@ -1,4 +1,4 @@
-package aufgabe;
+		package aufgabe;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -8,20 +8,22 @@ public class crypt {
 	// S-Box substitution
 	int[] sBox = {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
 	// reverse substitution für entschlüsselung
-	int[] revSbox = {14, 5, 6, 10, 3, 15, 7, 9, 11, 0, 4, 1, 2, 8, 13, 12};
+	int[] revSbox = {14, 3, 4, 8, 1, 12, 10, 15, 7, 13, 9, 6, 11, 2, 0, 5};
 	// transpositions tabelle der DES verschlüsselung
 	int[] transTable = {1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16};
 	// approximationstabelle
 	int[][] approxTable = new int[16][16];
 	// anzahl der known pairs
-	//int numKnown = 65536;
-	int numKnown = 1;
+	int numKnown = 65536;
+	//int numKnown = 1;
 	// known plaintexts
 	int[] knownP = new int[numKnown];
 	// known ciphertext
 	int[] knownC = new int[numKnown];
 	// anzahl der runden zur verschlüsselung
 	int numRounds = 4;
+	// ergebnisse der häufigkeit der teilschlüssel
+	double[] subkeyBias = new double[16*16];
 	
 	void main(String[] args) {
 		System.out.println("Known Plaintext Paare erstellen...");
@@ -34,68 +36,73 @@ public class crypt {
 	 	findApprox();
 	 	showApprox();
 		
-	    /*
-	    int inputApprox = 11;
-	    int outputApprox = 11;
+	    System.out.println("\nTeilschlüssel finden...");
+	    findPartKeys();
+	    showPartTable();
+	    int indexHighestValue = getIndexOfHighestValue();
 	    
-	    int[] keyScore = new int[16];
-	    int sofar1 = 0;
+	    int key2 = indexHighestValue % 16;
+	    int key1 = Math.floorDiv(indexHighestValue, 16) % 16;
 	    
-	    System.out.printf("Linear Attack:  Using Linear Approximation = %d -> %d\n", inputApprox, outputApprox);
-	    
-	    for(int c = 0; c < 16; c++) {
-	        for(int d = 0; d < numKnown; d++) {
-	            sofar1++;
-	            int midRound = roundFunc(knownP[d], c);         //Find Xi by guessing at K1
-	            
-	            if ((applyMask(midRound, inputApprox) == applyMask(knownC[d], outputApprox))) {
-	                keyScore[c]++;
-	            } else {
-	                keyScore[c]--;
-	            }   
-	        }
-	    }
-	    
-	    int maxScore = 0;
-	    for(int c = 0; c < 16; c++) {
-	        int score = keyScore[c] * keyScore[c];
-	        if (score > maxScore) maxScore = score;
-	    }
-	    
-	    int[] goodKeys = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-	    
-	    int d = 0;	    
-	    for(int c = 0; c < 16; c++) {
-	        if ((keyScore[c] * keyScore[c]) == maxScore) {
-	            goodKeys[d] = c;
-	            System.out.printf("Linear Attack:  Candidate for K1 = %d\n", goodKeys[d]);
-	            d++;
-	        }
-	    }
-	    
-	    for(d = 0; d < 16; d++)    
-	    {
-	        if (goodKeys[d] != -1) {
-	                int k1test = roundFunc(knownP[0], goodKeys[d]) ^ revSbox[knownC[0]];
-
-	                int bad = 0;
-	                for(int e = 0;e < numKnown; e++) {
-	                    sofar1 += 2;
-	                    int testOut = roundFunc(roundFunc(knownP[e], goodKeys[d]), k1test);
-	                    if (testOut != knownC[e]) {
-	                        bad = 1;
-	                    }
-	                }
-	                if (bad == 0) {
-	                    System.out.printf("Linear Attack:  Found Keys! K1 = %d, K2 = %d\n", goodKeys[d], k1test);
-	                    System.out.printf("Linear Attack:  Computations Until Key Found = %d\n", sofar1);
-	                }
-	 
-	        }    
-	    }
-	    
-	    System.out.printf("Linear Attack:  Computations Total = %d\n\n", sofar1);
-	    */
+	    System.out.println("Index des höchsten Wertes: " + indexHighestValue);
+	    System.out.println("Teilschlüssel [5-8]: " + key1);
+	    System.out.println("Teilschlüssel [13-16]: " + key2);
+	}
+	
+	int getIndexOfHighestValue() {
+		double max = -1;
+		int index = 0;
+		for (int i = 0; i < subkeyBias.length; i++) {
+			if (subkeyBias[i] > max) {
+				max = subkeyBias[i];
+				index = i;
+			}
+		}
+		return index;
+	}
+	
+	void showPartTable() {
+		for (int i = 0; i < subkeyBias.length; i++) {
+			System.out.printf("%d\t%f\n", i, subkeyBias[i]);
+		}
+	}
+	
+	void findPartKeys() {
+		for (int i = 0; i < 16; i++) {
+			System.out.printf(" %d...", i);
+			for (int j = 0; j < 16; j++) {				
+				for (int a = 0; a < numKnown; a++) {
+					String plaint = toBinary(knownP[a], 16);
+					String ciphert = toBinary(knownC[a], 16);
+					
+					String c1 = ciphert.substring(4, 8);
+					String c2 = ciphert.substring(12, 16);
+					
+					int v1 = i ^ toDecimal(c1);
+					int v2 = j ^ toDecimal(c2);
+					
+					int u1 = revSbox[v1];
+					String u1Str = toBinary(u1, 4);
+					
+					int u2 = revSbox[v2];
+					String u2Str = toBinary(u2, 4);					  
+					
+					if ((	toDecimal(u1Str.substring(1, 2)) ^ 
+							toDecimal(u1Str.substring(3, 4)) ^ 
+							toDecimal(u2Str.substring(1, 2)) ^ 
+							toDecimal(u2Str.substring(3, 4)) ^ 
+							toDecimal(plaint.substring(4, 5)) ^ 
+							toDecimal(plaint.substring(6, 7)) ^ 
+							toDecimal(plaint.substring(7, 8))) == 0
+					) {
+						subkeyBias[(i*16) + j]++;
+					}
+				}				
+				subkeyBias[(i*16) + j] = Math.abs(subkeyBias[(i*16) + j] - numKnown/2) / numKnown; 
+				
+			}
+		}
+		System.out.printf("\n");
 	}
 	
 	/*
@@ -142,16 +149,12 @@ public class crypt {
 	 * Approximationstabelle ausgeben
 	 */
 	void showApprox() {
-	    //System.out.println("Gute Lineare Approximationen:");
-		System.out.println("Approximationstabelle: (input mask \\ output mask)");
+	    System.out.println("Approximationstabelle: (input mask \\ output mask)");
 		System.out.printf("\t0\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\n");
 	    for(int c = 0; c < 16; c++) {
 	    	System.out.printf("%d\t", c);
 	        for(int d = 0; d < 16; d++) {
 	        	System.out.printf("%d\t", approxTable[c][d]);
-	            /*if (Math.abs(approxTable[c][d]) >= 6) {
-	                System.out.printf("  %d -> %d\t: %d\n", c, d, approxTable[c][d]);
-	            }*/
 	        }
 	        System.out.printf("\n");
 	    }
@@ -159,15 +162,13 @@ public class crypt {
 	
 	/*
 	 * Known Pairs erstellen
-	 * Test: 17978 = 24754 bei Schlüssel = 350 nach einer Runde
-     * Test: 17978 = 10418 bei Schlüssel = 350 bei letzter runde (ohne transposition)
 	 */
 	void fillKnowns() {
 		Random rand = new Random(); 
-	    int[] roundKeys = new int[numRounds];
-	    for (int j = 0; j < numRounds; j++) {
+	    int[] roundKeys = new int[numRounds+1];
+	    for (int j = 0; j <= numRounds; j++) {
 	    	roundKeys[j] = Math.abs(rand.nextInt()) % numKnown;
-        	System.out.printf("  Rundenschlüssel S %d: %d\n", j+1, roundKeys[j]);
+        	System.out.printf("  Rundenschlüssel S %d: %s\n", j+1, roundKeys[j]);
 	    }
 	    
 	    for(int i = 0; i < numKnown; i++) {
@@ -178,7 +179,7 @@ public class crypt {
 	        knownC[i] = knownP[i];
 	        for (int j = 1; j <= numRounds; j++) {
 	        	if (j == numRounds) {
-	        		knownC[i] = lastRoundFunc(knownC[i], roundKeys[j-1]);
+	        		knownC[i] = lastRoundFunc(knownC[i], roundKeys[j-1], roundKeys[j]);
 	        	} else {
 	        		knownC[i] = roundFunc(knownC[i], roundKeys[j-1]);
 	        	}
@@ -201,9 +202,11 @@ public class crypt {
 	 * @input Plaintext
 	 * @subkey Rundenschlüssel
 	 */
-	int lastRoundFunc(int input, int subkey) {
-		input = input ^ subkey;
-		return substitution(input);
+	int lastRoundFunc(int input, int subkey1, int subkey2) {
+		input = input ^ subkey1;
+		input = substitution(input);
+		input = input ^ subkey2;
+		return input;
 	}
 	
 	/*
