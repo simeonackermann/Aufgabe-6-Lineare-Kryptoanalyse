@@ -1,26 +1,24 @@
-		package aufgabe;
+package aufgabe;
 
 import java.util.Arrays;
 import java.util.Random;
 
 public class crypt {
 	
+	// Anzahl der known pairs
+	int numKnown = 65536;
 	// S-Box Substitution
-	int[] sBox = {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
-	// Inverse Substitution für Entschlüsselung
-	int[] revSbox = {14, 3, 4, 8, 1, 12, 10, 15, 7, 13, 9, 6, 11, 2, 0, 5};
+	Integer[] sBox = {14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
 	// Transpositions Tabelle der DES Verschlüsselung
 	int[] transTable = {1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16};
 	// Approximationstabelle
 	int[][] approxTable = new int[16][16];
-	// Anzahl der known pairs
-	int numKnown = 65536;
+	// Anzahl der Runden zur Verschlüsselung (kann nicht dynamisch geändert werden)
+	int numRounds = 4;
 	// known plaintexts
 	int[] knownP = new int[numKnown];
 	// known ciphertext
-	int[] knownC = new int[numKnown];
-	// Anzahl der Runden zur Verschlüsselung
-	int numRounds = 4;
+	int[] knownC = new int[numKnown];	
 	// Ergebnisse der Häufigkeit der Teilschlüssel
 	double[] subkeyBias = new double[16*16];
 	
@@ -38,7 +36,7 @@ public class crypt {
 	    System.out.println("\nTeilschlüssel finden...");
 	    findPartKeys();
 	    System.out.println("Index und Werte:");
-	    showPartTable();
+	    showPartTable();	    
 	    
 	    //Schlüsselbits der letzten Runde - Aus Array den Eintrag auslesen mit höchster Abweichung von 1/2
 	    int indexHighestValue = getIndexOfHighestValue();	
@@ -89,10 +87,9 @@ public class crypt {
 					int v2 = j ^ toDecimal(c2);
 					
 					//Invers Lookup der Sbox 4,2 bzw. 4,4
-					int u1 = revSbox[v1];
+					Integer u1 = Arrays.asList(sBox).indexOf(v1);
+					Integer u2 = Arrays.asList(sBox).indexOf(v2);
 					String u1Str = toBinary(u1, 4);
-					
-					int u2 = revSbox[v2];
 					String u2Str = toBinary(u2, 4);					  
 					
 					//Gleichung siehe Heys S. 15
@@ -282,8 +279,4 @@ public class crypt {
 	Integer toDecimal(String input) {
 		return Integer.parseInt(input, 2);
 	}
-	
-	
-	
-
 }
