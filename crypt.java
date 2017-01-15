@@ -3,6 +3,11 @@ package aufgabe;
 import java.util.Arrays;
 import java.util.Random;
 
+/**
+ * Angriff auf DES Verschlüsselung mit 4 Runden mit linearer Kryptonanalyse 
+ * @author Tim Menapace, Simeon Ackermann
+ *
+ */
 public class crypt {
 	
 	// Anzahl der known pairs
@@ -49,10 +54,13 @@ public class crypt {
 	    System.out.println("Teilschlüssel [13-16]:\t " + key2);
 	}
 	
-	//Schlüsselbits der letzten Runde auslesen
+	/**
+	 * Schlüsselbits der letzten Runde auslesen
+	 * @return Integer Index
+	 */
 	int getIndexOfHighestValue() {
 		double max = -1;
-		int index = 0;
+		int index = -1;
 		for (int i = 0; i < subkeyBias.length; i++) {
 			if (subkeyBias[i] > max) {
 				max = subkeyBias[i];
@@ -62,14 +70,18 @@ public class crypt {
 		return index;
 	}
 	
-	//Ausgabe der Tabelle zum Matsui Algorithmus
+	/**
+	 * Ausgabe der Tabelle zum Matsui Algorithmus
+	 */
 	void showPartTable() {
 		for (int i = 0; i < subkeyBias.length / 4; i++) {
 			System.out.printf("%d\t%f\t %d\t%f\t %d\t%f\t %d\t%f\n", i, subkeyBias[i], i+64, subkeyBias[i+64], i+128, subkeyBias[i+128], i+192, subkeyBias[i+192]);
 		}
 	}
 	
-	//Lineare Gleichung nach Matsui aufstellen und Treffer in subkeyBias zählen
+	/**
+	 * Lineare Gleichung nach Matsui aufstellen und Treffer in subkeyBias zählen 
+	 */
 	void findPartKeys() {
 		//Zwei Schleifen bis 16 für alle möglichen Schlüsselbits K5,5 ... K5,8 ; K5,13 ... K5,16
 		for (int i = 0; i < 16; i++) {
@@ -77,14 +89,11 @@ public class crypt {
 			for (int j = 0; j < 16; j++) {				
 				for (int a = 0; a < numKnown; a++) {
 					String plaint = toBinary(knownP[a], 16);
-					String ciphert = toBinary(knownC[a], 16);
-					
-					String c1 = ciphert.substring(4, 8);
-					String c2 = ciphert.substring(12, 16);
+					String cipht = toBinary(knownC[a], 16);
 					
 					//XOR mit Rundenschlüssel 5
-					int v1 = i ^ toDecimal(c1);
-					int v2 = j ^ toDecimal(c2);
+					int v1 = i ^ toDecimal(cipht, 4, 7);
+					int v2 = j ^ toDecimal(cipht, 12, 15);
 					
 					//Invers Lookup der Sbox 4,2 bzw. 4,4
 					Integer u1 = Arrays.asList(sBox).indexOf(v1);
@@ -94,13 +103,13 @@ public class crypt {
 					
 					//Gleichung siehe Heys S. 15
 					//U4,6 xor U4,8 xor U4,14 xor U4,16 xor P5 xor P7 xor P8 = 0 
-					if ((	toDecimal(u1Str.substring(1, 2)) ^ 
-							toDecimal(u1Str.substring(3, 4)) ^ 
-							toDecimal(u2Str.substring(1, 2)) ^ 
-							toDecimal(u2Str.substring(3, 4)) ^ 
-							toDecimal(plaint.substring(4, 5)) ^ 
-							toDecimal(plaint.substring(6, 7)) ^ 
-							toDecimal(plaint.substring(7, 8))) == 0
+					if ((	toDecimal(u1Str, 1) ^ 
+							toDecimal(u1Str, 3) ^ 
+							toDecimal(u2Str, 1) ^ 
+							toDecimal(u2Str, 3) ^ 
+							toDecimal(plaint, 4) ^ 
+							toDecimal(plaint, 6) ^ 
+							toDecimal(plaint, 7)) == 0
 					) {
 						subkeyBias[(i*16) + j]++;
 					}
@@ -112,26 +121,19 @@ public class crypt {
 		System.out.printf("\n");
 	}
 	
-	/*
+	/**
 	 * Maske auf input anwenden (a1 * Y1 ^ a2 * Y2) siehe Heys S.11
 	 */
 	int applyMask(int input, int mask) {
 		String inputBin = toBinary(input, 4);
-		Integer in1 = toDecimal(inputBin.substring(0, 1));
-		Integer in2 = toDecimal(inputBin.substring(1, 2));
-		Integer in3 = toDecimal(inputBin.substring(2, 3));
-		Integer in4 = toDecimal(inputBin.substring(3, 4));
-		
 		String maskBin = toBinary(mask, 4);
-		Integer m1 = toDecimal(maskBin.substring(0, 1));
-		Integer m2 = toDecimal(maskBin.substring(1, 2));
-		Integer m3 = toDecimal(maskBin.substring(2, 3));
-		Integer m4 = toDecimal(maskBin.substring(3, 4));
-		
-		return in1 * m1 ^ in2 * m2 ^ in3 * m3 ^ in4 * m4 ;
+		return 	toDecimal(inputBin, 0) * toDecimal(maskBin, 0) ^
+				toDecimal(inputBin, 1) * toDecimal(maskBin, 1) ^
+				toDecimal(inputBin, 2) * toDecimal(maskBin, 2) ^
+				toDecimal(inputBin, 3) * toDecimal(maskBin, 3);
 	}
 	
-	/*
+	/**
 	 * Approximationstabelle erstellen
 	 */
 	void findApprox() {
@@ -152,7 +154,7 @@ public class crypt {
 		}
 	}
 	
-	/*
+	/**
 	 * Approximationstabelle ausgeben
 	 */
 	void showApprox() {
@@ -167,7 +169,7 @@ public class crypt {
 	    }
 	}
 	
-	/*
+	/**
 	 * Known Pairs erstellen
 	 */
 	void fillKnowns() {
@@ -194,7 +196,7 @@ public class crypt {
 	    }
 	}
 	
-	/*
+	/**
 	 * Rundenfunktion für DES
 	 * @input Plaintext
 	 * @subkey Rundenschlüssel
@@ -204,7 +206,7 @@ public class crypt {
 		return transposition(substitution(input));
 	}
 	
-	/*
+	/**
 	 * Letzte Runde für DES (ohne Transposition)
 	 * @input Plaintext
 	 * @subkey Rundenschlüssel
@@ -216,30 +218,23 @@ public class crypt {
 		return input;
 	}
 	
-	/*
+	/**
 	 * Substitution mit S-Box für  DES
 	 * @input Plaintext
 	 * @subkey Rundenschlüssel
 	 */
 	int substitution(int input) {
 		String bin = toBinary(input, 16);
-		String bin1 = bin.substring(0, 4);
-		Integer bin1Int = sBox[toDecimal(bin1)];
-		
-		String bin2 = bin.substring(4, 8);
-		Integer bin2Int = sBox[toDecimal(bin2)];
-		
-		String bin3 = bin.substring(8, 12);
-		Integer bin3Int = sBox[toDecimal(bin3)];
-		
-		String bin4 = bin.substring(12, 16);
-		Integer bin4Int = sBox[toDecimal(bin4)];
+		Integer bin1Int = sBox[toDecimal(bin, 0, 3)];		
+		Integer bin2Int = sBox[toDecimal(bin, 4, 7)];
+		Integer bin3Int = sBox[toDecimal(bin, 8, 11)];
+		Integer bin4Int = sBox[toDecimal(bin, 12, 15)];
 		
 		String result = toBinary(bin1Int, 4) + toBinary(bin2Int, 4) + toBinary(bin3Int, 4) + toBinary(bin4Int, 4);
 		return toDecimal(result);
 	}
 	
-	/*
+	/**
 	 * Transposition mit Transpositionstabelle für DES
 	 * @input Eingabezahl
 	 */
@@ -252,7 +247,7 @@ public class crypt {
 		return toDecimal(result);
 	}
 	
-	/*
+	/**
 	 * Dualzahl fester Länge aus Dezimalzahl erstellen
 	 * @input Dezimalzahl
 	 * @length Länge
@@ -272,11 +267,30 @@ public class crypt {
 		return binarized;
 	}
 	
-	/*
-	 * Dezimalzahl (Integer) aus String erzeugen
-	 * @input Eingabe-String
+	/**
+	 * Dezimalzahl (Integer) aus Binärem String erzeugen
+	 * @input Binärer Eingabe-String
 	 */
 	Integer toDecimal(String input) {
 		return Integer.parseInt(input, 2);
+	}
+	
+	/**
+	 * Dezimalzahl aus Position (index) eines Binärem String erzeugen
+	 * @input Binärer Eingabe-String
+	 * @index Position das des Eingabe-String, startet bei 0
+	 */
+	Integer toDecimal(String input, int index) {
+		return toDecimal(Character.toString(input.charAt(index)));
+	}
+	
+	/**
+	 * Dezimalzahl aus Teil (from, to) eines Binärem String erzeugen
+	 * @input Binärer Eingabe-String
+	 * @from Start Index des Eingabe-String, startet bei 0
+	 * @to End-Index des Eingabe-String inklusive
+	 */
+	Integer toDecimal(String input, int from, int to) {
+		return toDecimal(input.substring(from, to+1));
 	}
 }
