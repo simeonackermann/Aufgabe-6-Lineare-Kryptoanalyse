@@ -1,6 +1,15 @@
 <b>Lineare Kryptoanalyse nach Matsui</b></br>
 Implementierung in Java
 
+<strong> 0 Start</strong>
+
+Kompilieren und ausführen:
+
+<pre>
+  javac LineareKryptoanalyse.java
+  java LineareKryptoanalyse
+</pre>
+
 <strong> 1  Allgemein</strong>
 
 Ziel des Programms ist die Lineare Kryptoanalyse einer DES Verschlüsselung in 4 Runden mit Schlüssellänge 64 Bit.

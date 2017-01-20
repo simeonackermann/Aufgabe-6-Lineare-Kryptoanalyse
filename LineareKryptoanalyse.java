@@ -1,5 +1,3 @@
-package aufgabe;
-
 import java.util.Arrays;
 import java.util.Random;
 
@@ -8,7 +6,7 @@ import java.util.Random;
  * @author Tim Menapace, Simeon Ackermann
  *
  */
-public class crypt {
+public class LineareKryptoanalyse {
 	
 	// Anzahl der known pairs
 	int numKnown = 65536;
@@ -27,7 +25,12 @@ public class crypt {
 	// Ergebnisse der Häufigkeit der Teilschlüssel
 	double[] subkeyBias = new double[16*16];
 	
-	void main(String[] args) {
+	public static void main(String[] args) {
+		LineareKryptoanalyse c = new LineareKryptoanalyse();
+		c.run();
+	}
+	
+	void run() {
 		System.out.println("Known Plaintext Paare erstellen...");
 	    fillKnowns();
 	    System.out.printf("  Klartext (erste 16): %s ...\n", Arrays.toString(Arrays.copyOfRange(knownP, 0, 16)));
@@ -143,7 +146,7 @@ public class crypt {
 	        for(int a = 1; a < 16; a++) {
 	        	// input, jede Zelle für 16 Fälle testen 
 	            for(int e = 0; e < 16; e++) {
-	            	// Wenn a & X == b & Y approxTable inkrementieren
+	            	// wert inkrementieren
 	            	if (applyMask(e, a) == applyMask(sBox[e], b)) {
 	                    approxTable[a][b]++;
 	                }	            	
